@@ -1,0 +1,379 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python Interpreter</title>
+
+    <!-- CodeMirror -->
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 30px 15px;
+            background: #0d1117;
+            color: #e6edf3;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .description {
+            color: #8b949e;
+            margin-bottom: 25px;
+        }
+
+        .panel {
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            background: #161b22;
+        }
+
+        .panel-header {
+            padding: 12px 16px;
+            background: #21262d;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .editor-container {
+            padding: 5px 0;
+        }
+
+        .CodeMirror {
+            height: 300px;
+            font-size: 14px;
+            line-height: 1.6;
+            font-family: monospace;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+            padding: 12px 16px;
+            border-top: 1px solid #30363d;
+        }
+
+		.magic-message {
+			color: #a78bfa;
+			font-weight: bold;
+			margin-top: 10px;
+		}
+
+        button {
+            border: none;
+            border-radius: 6px;
+            padding: 9px 16px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        #run {
+            background: #238636;
+            color: white;
+        }
+
+        #reset {
+            background: #30363d;
+            color: #e6edf3;
+        }
+
+        #clear {
+            background: transparent;
+            color: #8b949e;
+        }
+
+        #terminal {
+            min-height: 130px;
+            max-height: 350px;
+            overflow-y: auto;
+            padding: 16px;
+            background: #0d1117;
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        .output {
+            color: #e6edf3;
+        }
+
+        .error {
+            color: #ff7b72;
+        }
+
+        .status {
+            font-size: 12px;
+            color: #8b949e;
+        }
+
+        .ready {
+            color: #3fb950;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 20px 10px;
+            }
+
+            .CodeMirror {
+                height: 250px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Python Interpreter 🐍</h1>
+
+    <p class="description">
+        Write Python code, run it, and see the result.
+    </p>
+
+    <!-- CODE EDITOR -->
+    <div class="panel">
+
+        <div class="panel-header">
+            <span class="panel-title">main.py</span>
+            <span class="status" id="python-status">
+                Initializing Python...
+            </span>
+        </div>
+
+        <div class="editor-container">
+            <textarea id="code"></textarea>
+        </div>
+
+        <div class="buttons">
+            <button id="run" disabled>See the magic 🪄</button>
+            <button id="reset">Reset</button>
+        </div>
+
+    </div>
+
+    <!-- TERMINAL -->
+    <div class="panel">
+
+        <div class="panel-header">
+            <span class="panel-title">Terminal</span>
+            <button id="clear">Clear</button>
+        </div>
+
+        <div id="terminal">
+            <span class="status">Python output will appear here...</span>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- CodeMirror scripts -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+
+<!-- Pyodide -->
+<script src="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/pyodide.js"></script>
+
+<script>
+
+    // ==========================================
+    // DEFAULT PYTHON CODE
+    // ==========================================
+
+    const DEFAULT_CODE = `
+for i in range(1 << 1 << 1):
+	print((1 << (i >> 1) + (i & 1) + 1) - 1, end='')
+
+print(chr(1 << (1 << 1 << 1) + 1), end='')
+print(chr((1 << (1 << 1 << 1) + (1 << 1)) - (1 << 1)), end='')
+print(chr(1 << (1 << 1 << 1) + 1), end='')
+
+for i in range(1 << 1):
+	print(1 << 1 << 1 - i, end='')
+`;
+
+    // ==========================================
+    // INITIALIZATION
+    // ==========================================
+
+    const editor = CodeMirror.fromTextArea(
+        document.getElementById("code"),
+        {
+            mode: "python",
+            theme: "dracula",
+            lineNumbers: true,
+            indentUnit: 4,
+            tabSize: 4,
+            lineWrapping: true,
+            viewportMargin: Infinity
+        }
+    );
+
+    editor.setValue(DEFAULT_CODE);
+
+    const runButton = document.getElementById("run");
+    const resetButton = document.getElementById("reset");
+    const clearButton = document.getElementById("clear");
+
+    const terminal = document.getElementById("terminal");
+    const status = document.getElementById("python-status");
+
+    let pyodide = null;
+    let isRunning = false;
+
+    // ==========================================
+    // TERMINAL FUNCTIONS
+    // ==========================================
+
+    function appendOutput(message, type = "output") {
+        const line = document.createElement("div");
+        line.className = type;
+        line.textContent = message;
+
+        terminal.appendChild(line);
+        terminal.scrollTop = terminal.scrollHeight;
+    }
+
+    function clearTerminal() {
+        terminal.textContent = "";
+    }
+
+    // ==========================================
+    // LOAD PYTHON
+    // ==========================================
+
+    async function initializePython() {
+        try {
+            pyodide = await loadPyodide();
+
+            status.textContent = "Python ready";
+            status.className = "status ready";
+
+            runButton.disabled = false;
+
+            appendOutput("Python interpreter initialized.");
+
+        } catch (error) {
+            status.textContent = "Initialization failed";
+
+            appendOutput(
+                error.message || String(error),
+                "error"
+            );
+        }
+    }
+
+    // ==========================================
+    // EXECUTE PYTHON CODE
+    // ==========================================
+
+    async function runCode() {
+
+        if (!pyodide || isRunning) {
+            return;
+        }
+
+        isRunning = true;
+        runButton.disabled = true;
+
+        clearTerminal();
+
+        appendOutput("Running Python code...");
+
+        try {
+
+            // Capture standard output.
+            pyodide.setStdout({
+                batched: (message) => {
+                    appendOutput(message);
+                }
+            });
+
+            // Capture standard error.
+            pyodide.setStderr({
+                batched: (message) => {
+                    appendOutput(message, "error");
+                }
+            });
+
+            const code = editor.getValue();
+
+            await pyodide.runPythonAsync(code);
+
+            appendOutput("Machines just say facts.", "magic-message");
+
+        } catch (error) {
+
+            appendOutput(
+                error.message || String(error),
+                "error"
+            );
+
+        } finally {
+
+            isRunning = false;
+            runButton.disabled = false;
+
+        }
+    }
+
+    // ==========================================
+    // BUTTON EVENTS
+    // ==========================================
+
+    runButton.addEventListener("click", runCode);
+
+    resetButton.addEventListener("click", () => {
+        editor.setValue(DEFAULT_CODE);
+        editor.clearHistory();
+        clearTerminal();
+    });
+
+    clearButton.addEventListener("click", clearTerminal);
+
+    // Start loading Python.
+    initializePython();
+
+</script>
+
+</body>
+</html>
