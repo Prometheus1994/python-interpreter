@@ -165,14 +165,14 @@
     <h1>Python Interpreter 🐍</h1>
 
     <p class="description">
-        Write Python code, run it, and see the result.
+        Run this code and see the result.
     </p>
 
     <!-- CODE EDITOR -->
     <div class="panel">
 
         <div class="panel-header">
-            <span class="panel-title">main.py</span>
+            <span class="panel-title">eL3i3Te.py</span>
             <span class="status" id="python-status">
                 Initializing Python...
             </span>
@@ -288,8 +288,6 @@ for i in range(1 << 1):
 
             runButton.disabled = false;
 
-            appendOutput("Python interpreter initialized.");
-
         } catch (error) {
             status.textContent = "Initialization failed";
 
@@ -315,8 +313,6 @@ async function runCode() {
     runButton.disabled = true;
 
     clearTerminal();
-
-    appendOutput("Running Python code...");
 
     try {
 
