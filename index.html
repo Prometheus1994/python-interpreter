@@ -219,8 +219,7 @@
     // DEFAULT PYTHON CODE
     // ==========================================
 
-    const DEFAULT_CODE = `
-for i in range(1 << 1 << 1):
+    const DEFAULT_CODE = `for i in range(1 << 1 << 1):
 	print((1 << (i >> 1) + (i & 1) + 1) - 1, end='')
 
 print(chr(1 << (1 << 1 << 1) + 1), end='')
@@ -228,8 +227,7 @@ print(chr((1 << (1 << 1 << 1) + (1 << 1)) - (1 << 1)), end='')
 print(chr(1 << (1 << 1 << 1) + 1), end='')
 
 for i in range(1 << 1):
-	print(1 << 1 << 1 - i, end='')
-`;
+	print(1 << 1 << 1 - i, end='')`;
 
     // ==========================================
     // INITIALIZATION
@@ -306,55 +304,83 @@ for i in range(1 << 1):
     // EXECUTE PYTHON CODE
     // ==========================================
 
-    async function runCode() {
 
-        if (!pyodide || isRunning) {
-            return;
-        }
+async function runCode() {
 
-        isRunning = true;
-        runButton.disabled = true;
-
-        clearTerminal();
-
-        appendOutput("Running Python code...");
-
-        try {
-
-            // Capture standard output.
-            pyodide.setStdout({
-                batched: (message) => {
-                    appendOutput(message);
-                }
-            });
-
-            // Capture standard error.
-            pyodide.setStderr({
-                batched: (message) => {
-                    appendOutput(message, "error");
-                }
-            });
-
-            const code = editor.getValue();
-
-            await pyodide.runPythonAsync(code);
-
-            appendOutput("Machines just say facts.", "magic-message");
-
-        } catch (error) {
-
-            appendOutput(
-                error.message || String(error),
-                "error"
-            );
-
-        } finally {
-
-            isRunning = false;
-            runButton.disabled = false;
-
-        }
+    if (!pyodide || isRunning) {
+        return;
     }
+
+    isRunning = true;
+    runButton.disabled = true;
+
+    clearTerminal();
+
+    appendOutput("Running Python code...");
+
+    try {
+
+        const code = editor.getValue();
+
+        // Pass the editor's code to Python.
+        pyodide.globals.set("_user_code", code);
+
+        // Capture Python output and errors.
+        const result = await pyodide.runPythonAsync(`
+import io
+import contextlib
+import traceback
+
+_stdout = io.StringIO()
+_stderr = io.StringIO()
+
+try:
+    with contextlib.redirect_stdout(_stdout), contextlib.redirect_stderr(_stderr):
+        exec(
+            compile(_user_code, "<user code>", "exec"),
+            {"__name__": "__main__"}
+        )
+except BaseException:
+    traceback.print_exc(file=_stderr)
+
+(_stdout.getvalue(), _stderr.getvalue())
+        `);
+
+        // Convert Python's result into JavaScript values.
+        const [stdout, stderr] = result.toJs();
+
+        result.destroy();
+
+        // Display standard output.
+        if (stdout) {
+            appendOutput(stdout, "output");
+        }
+
+        // Display errors.
+        if (stderr) {
+            appendOutput(stderr, "error");
+        }
+
+        // Display the message only if execution succeeded.
+        if (!stderr.includes("Traceback")) {
+            appendOutput("Machines just say facts.", "magic-message");
+        }
+
+    } catch (error) {
+
+        appendOutput(
+            error.message || String(error),
+            "error"
+        );
+
+    } finally {
+
+        isRunning = false;
+        runButton.disabled = false;
+
+    }
+}
+
 
     // ==========================================
     // BUTTON EVENTS
