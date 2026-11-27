@@ -222,9 +222,7 @@
     const DEFAULT_CODE = `for i in range(1 << 1 << 1):
 	print((1 << (i >> 1) + (i & 1) + 1) - 1, end='')
 
-print(chr(1 << (1 << 1 << 1) + 1), end='')
-print(chr((1 << (1 << 1 << 1) + (1 << 1)) - (1 << 1)), end='')
-print(chr(1 << (1 << 1 << 1) + 1), end='')
+print(chr(1), chr((1 << (1 << 1 << 1) + (1 << 1)) - (1 << 1)), chr(1), end='')
 
 for i in range(1 << 1):
 	print(1 << 1 << 1 - i, end='')`;
